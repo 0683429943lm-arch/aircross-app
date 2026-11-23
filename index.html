@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aircross">
+<meta name="theme-color" content="#0E1318">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Aircross</title>
+<style>
+:root{--bg:#0E1318;--card:#1B2630;--card-on:#26343F;--text:#F2F5F7;--muted:#A9B6C2;--accent:#5BC8F5}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{display:flex;flex-direction:column;gap:20px;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 20px);overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+#clock{font-size:clamp(72px,24vw,104px);font-weight:800;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+#weather{display:flex;align-items:center;gap:14px;margin-top:12px;cursor:pointer}
+#weather svg{width:44px;height:44px;flex:none}
+#temp{font-size:36px;font-weight:700;line-height:1}
+#cond{font-size:17px;font-weight:500;color:var(--muted)}
+svg{fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:14px}
+.tile{background:var(--card);border-radius:24px;color:var(--text);text-decoration:none;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:0 20px;font-size:24px;font-weight:700}
+.tile svg{width:48px;height:48px}
+.tile:active{background:var(--card-on);transform:scale(.97)}
+.tile:focus-visible{outline:3px solid var(--accent)}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 36px);transform:translateX(-50%);background:var(--text);color:var(--bg);padding:14px 22px;border-radius:999px;font-size:18px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header>
+<div id="clock">--:--</div>
+<div id="weather" role="button" tabindex="0" aria-label="Actualiser la météo">
+<svg id="wicon" viewBox="0 0 24 24" aria-hidden="true"></svg>
+<div><div id="temp">--</div><div id="cond">Météo…</div></div>
+</div>
+</header>
+<nav>
+<a class="tile" href="https://www.google.com/maps" data-app="comgooglemaps://" data-fallback="https://www.google.com/maps"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Navigation</a>
+<a class="tile" href="https://www.deezer.com" data-app="deezer://" data-fallback="https://www.deezer.com"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>Musique</a>
+<a class="tile" href="#" data-soon><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M7 8l10-5"/><circle cx="9" cy="14" r="2.5"/><path d="M15 12h3M15 16h3"/></svg>Webradios</a>
+<a class="tile" href="#" data-soon><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>Téléphone</a>
+<a class="tile" href="sms:"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Messages</a>
+<a class="tile" href="#" data-soon><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Réglages</a>
+</nav>
+<div id="toast" role="status"></div>
+<script>
+const $=s=>document.querySelector(s);
+
+/* Horloge */
+function tick(){$('#clock').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+tick();setInterval(tick,1000);
+
+/* Météo (Open-Meteo, position de l'iPhone) */
+const ICO={
+sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+cloud:'<path d="M7 18a4 4 0 010-8 5 5 0 019.5-1A4.5 4.5 0 0117 18z"/>',
+rain:'<path d="M7 15a4 4 0 010-8 5 5 0 019.5-1A4.5 4.5 0 0117 15z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>',
+snow:'<path d="M7 15a4 4 0 010-8 5 5 0 019.5-1A4.5 4.5 0 0117 15z"/><path d="M8 19h.01M12 19h.01M16 19h.01M10 21h.01M14 21h.01"/>'};
+const CODES=[[0,'Dégagé','sun'],[2,'Peu nuageux','cloud'],[3,'Couvert','cloud'],[48,'Brouillard','cloud'],[57,'Bruine','rain'],[67,'Pluie','rain'],[77,'Neige','snow'],[82,'Averses','rain'],[86,'Averses de neige','snow'],[99,'Orage','rain']];
+function show(t,c){
+  const w=CODES.find(x=>c<=x[0])||CODES[CODES.length-1];
+  $('#temp').textContent=Math.round(t)+' °C';$('#cond').textContent=w[1];$('#wicon').innerHTML=ICO[w[2]];
+}
+function weather(){
+  try{const c=JSON.parse(localStorage.getItem('wx')||'null');if(c)show(c.t,c.c);}catch(e){}
+  const none=m=>{if($('#temp').textContent==='--')$('#cond').textContent=m;};
+  if(!navigator.geolocation){none('Météo indisponible');return;}
+  navigator.geolocation.getCurrentPosition(async p=>{
+    try{
+      const u='https://api.open-meteo.com/v1/forecast?latitude='+p.coords.latitude+'&longitude='+p.coords.longitude+'&current=temperature_2m,weather_code&timezone=auto';
+      const j=await (await fetch(u)).json();
+      const t=j.current.temperature_2m,c=j.current.weather_code;
+      show(t,c);
+      try{localStorage.setItem('wx',JSON.stringify({t,c}));}catch(e){}
+    }catch(e){none('Météo indisponible');}
+  },()=>none('Touchez pour autoriser la position'),{maximumAge:600000,timeout:10000});
+}
+weather();setInterval(weather,900000);
+$('#weather').addEventListener('click',weather);
+
+/* Lancement d'applications (avec repli sur le web) */
+document.querySelectorAll('[data-app]').forEach(a=>a.addEventListener('click',e=>{
+  e.preventDefault();
+  location.href=a.dataset.app;
+  const fb=a.dataset.fallback;
+  if(fb)setTimeout(()=>{if(!document.hidden)location.href=fb;},1200);
+}));
+
+/* Tuiles pas encore disponibles */
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1800);}
+document.querySelectorAll('[data-soon]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();toast('Bientôt disponible');}));
+</script>
+</body>
+</html>
